@@ -38,20 +38,36 @@ int main(){
 	//-------------------三角形原始数据相关----------------------
 	//三角形坐标. 3d坐标
 	//顶点数组对象：Vertex Array Object，VAO
-	float vertices[]={
-		-0.5f, -0.5f, 0.0f,
-		0.5f, -0.5f, 0.0f,
-		0.0f,  0.5f, 0.0f,
-		-0.6f, -0.5f, 0.0f,
-		-0.1f,  0.5f, 0.0f,
-		-1.1f, 0.5f, 0.0f
+	// 以下是用两个三角形组成一个矩形，需要六个顶点
+	// float vertices[] = {
+	// 	// 第一个三角形
+	// 	0.5f, 0.5f, 0.0f,   // 右上角
+	// 	0.5f, -0.5f, 0.0f,  // 右下角
+	// 	-0.5f, 0.5f, 0.0f,  // 左上角
+	// 	// 第二个三角形
+	// 	0.5f, -0.5f, 0.0f,  // 右下角
+	// 	-0.5f, -0.5f, 0.0f, // 左下角
+	// 	-0.5f, 0.5f, 0.0f   // 左上角
+	// };
+	// 以下是使用索引缓冲对象：Element Buffer Object，EBO或Index Buffer Object
+	// 之后，只需要四个顶点，为此需要EBO来指定那些节点组成三角形
+	float vertices[] = {
+		0.5f, 0.5f, 0.0f,   // 右上角
+		0.5f, -0.5f, 0.0f,  // 右下角
+		-0.5f, -0.5f, 0.0f, // 左下角
+		-0.5f, 0.5f, 0.0f   // 左上角
 	};
-	unsigned int VBO;//顶点缓冲对象：Vertex Buffer Object，VBO, VBO用来管理显存
+	unsigned int indices[] = { // 注意索引从0开始! 
+		0, 1, 3, // 第一个三角形
+		1, 2, 3  // 第二个三角形
+	};
+
 	//VBO可以组成一个数组名为VAO. 数组的形式方便管理VBO
 	unsigned int VAO;//顶点数组对象(Vertex Array Object, VAO)可以像VBO那样被绑定，任何随后的顶点属性调用都会储存在这个VAO中。
 	glGenVertexArrays(1, &VAO);//产生一个VAO
 	glBindVertexArray(VAO);//先绑定VAO，之后再绑定VBO，这一步究竟是不是把VAO和GL_ARRAY_BUFFER绑在一起？
 
+	unsigned int VBO;//顶点缓冲对象：Vertex Buffer Object，VBO, VBO用来管理显存
 	glGenBuffers(1, &VBO);//产生一个VBO，第一个参数是OpenGL对象的id
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);//VBO绑定到数组缓冲
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -59,6 +75,12 @@ int main(){
 				// GL_STATIC_DRAW ：数据不会或几乎不会改变。
 				// GL_DYNAMIC_DRAW：数据会被改变很多。
 				// GL_STREAM_DRAW ：数据每次绘制时都会改变。
+
+	unsigned int EBO;//索引缓冲对象：Element Buffer Object，EBO或Index Buffer Object，IBO
+	glGenBuffers(1, &EBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);//这次是绑定到Element数组缓冲
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
 	//链接顶点属性(其实就是增加顶点的信息)
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);//设置顶点属性指针所要访问的内存布局(理解成定义一种访存用的指针)
 						//0:顶点属性位置值，与glsl的layout(location=0)对应
@@ -129,19 +151,20 @@ int main(){
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 
-
-	//索引缓冲对象：Element Buffer Object，EBO或Index Buffer Object，IBO在哪？
-
 	//Render loop
 	while(!glfwWindowShouldClose(window)){
 		//清屏
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);//清空时的背景色
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		//线框模式(Wireframe Mode)开启
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		//绘制物体
 		glUseProgram(shaderProgram);
-		glBindVertexArray(VAO);//绑定VAO作为要绘制的对象
-		glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices)/sizeof(float));//GL_TRIANGLES是primitive
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+		glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(float), GL_UNSIGNED_INT, 0);
+		//线框模式(Wireframe Mode)关闭
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 		//esc关闭窗口
 		processInput(window);

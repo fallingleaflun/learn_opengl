@@ -84,7 +84,7 @@ int main(){
 
 
 	//-----------------------创建一个封装好的着色器对象-------------------------
-	Shader ourShader("../res/shader/FragmentShader.frag", "../res/shader/VertexShader.vert");
+	Shader ourShader("./res/shader/VertexShader.vert", "./res/shader/FragmentShader.frag");
 
 
 	//---------------------可以开始画图啦！---------------------------
@@ -92,7 +92,7 @@ int main(){
 	while(!glfwWindowShouldClose(window)){
 		//清屏
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);//清空时的背景色
-		glClear(GL_COLOR_BUFFER_BIT);		
+		glClear(GL_COLOR_BUFFER_BIT);
 
 		//绘制三角形
 		ourShader.use();//启用ourShader

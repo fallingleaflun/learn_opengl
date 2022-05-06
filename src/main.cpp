@@ -4,6 +4,7 @@
 #include <cmath>
 #include <iostream>
 #include "learnopengl/shader_s.h"
+#include <stb_image.h>
 using namespace std;
 
 //函数头
@@ -43,15 +44,18 @@ int main(){
 	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
 	std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
-	//-------------------三角形原始数据相关----------------------
-	//三角形坐标. 3d坐标
-	//顶点数组对象：Vertex Array Object，VAO
-	float vertices[] = {
-		//位置              //颜色
-         0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,  // bottom left
-         0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f   // top 
-	};
+	//-------------------原始数据相关----------------------
+	float vertices[] = {//点
+		//位置                //颜色               //纹理坐标
+         0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
+         0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
+        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left 
+    };
+    unsigned int indices[] = {//索引
+        0, 1, 3, // first triangle
+        1, 2, 3  // second triangle
+    };
 
 
 	//---------------------内存/显存对象相关------------------------------------------

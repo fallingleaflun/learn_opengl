@@ -6,7 +6,7 @@
 #include "learnopengl/shader_s.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#include <glm/glm.hpp>
+#include <glm/glm/glm.hpp>
 using namespace std;
 
 //函数头

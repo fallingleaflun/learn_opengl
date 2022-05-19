@@ -7,6 +7,11 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <direct.h>  
+#include <stdio.h> 
+#include <string>
 using namespace std;
 
 //函数头
@@ -51,11 +56,11 @@ int main(){
 
 	//-------------------原始数据相关----------------------
 	float vertices[] = {//点
-		//位置                //颜色               //纹理坐标
-         0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
-         0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
-        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
-        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left 
+		//位置                //纹理坐标
+         0.5f,  0.5f, 0.0f,   1.0f, 1.0f, // top right
+         0.5f, -0.5f, 0.0f,   1.0f, 0.0f, // bottom right
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, // bottom left
+        -0.5f,  0.5f, 0.0f,   0.0f, 1.0f  // top left 
     };
     unsigned int indices[] = {//索引
         0, 1, 3, // first triangle
@@ -84,7 +89,7 @@ int main(){
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
 	//链接顶点的位置属性(其实就是增加顶点的信息)
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)0);//设置顶点属性指针所要访问的内存布局(理解成定义一种访存用的指针)
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);//设置顶点属性指针所要访问的内存布局(理解成定义一种访存用的指针)
 						//0:顶点属性位置值，与glsl的layout(location=0)对应
 						//3：顶点属性大小因为有三个坐标
 						//GLfloat：数据类型
@@ -92,12 +97,9 @@ int main(){
 						//stride(步长)
 						//(void*)0：位置数据在缓存中起始位置的偏移量
 	glEnableVertexAttribArray(0);//以顶点属性位置值作为参数，启用顶点属性
-	//链接顶点的颜色属性
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(3*sizeof(float)));
-	glEnableVertexAttribArray(1);
 	//链接顶点的纹理属性
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(6*sizeof(float)));
-	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));
+	glEnableVertexAttribArray(1);
 
 	
 	//------------------------------------创建纹理---------------------------
@@ -117,8 +119,6 @@ int main(){
     stbi_set_flip_vertically_on_load(true); //因为OpenGL要求y轴0.0坐标是在图片的底部的，但是图片的y轴0.0坐标通常在顶部, 调用这个函数翻转y轴
 	// unsigned char *data = stbi_load("./res/img/container.jpg", &width, &height, &nrChannels, 0);//加载图像
 	unsigned char *data = stbi_load("E:/code/learn_opengl/res/img/container.jpg", &width, &height, &nrChannels, 0);//加载图像, 路径需要是stb_image.h为根的相对路径
-    cout << nrChannels << endl;
-	cout<<"debug1"<<endl;
 	if (data){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 		//使用图像数据生成纹理
@@ -148,7 +148,6 @@ int main(){
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     // load image, create texture and generate mipmaps
     data = stbi_load("E:/code/learn_opengl/res/img/awesomeface.png", &width, &height, &nrChannels, 0);
-	cout << nrChannels << endl;
 	if (data){
         // note that the awesomeface.png has transparency and thus an alpha channel, so make sure to tell OpenGL the data type is of GL_RGBA
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);//怎么知道有没有A通道
@@ -159,14 +158,21 @@ int main(){
 		cout << stbi_failure_reason() << endl;
     }
     stbi_image_free(data);
+	
+
 	//-----------------------创建一个封装好的着色器对象-------------------------
-	Shader ourShader("./res/shader/VertexShader.vert", "./res/shader/FragmentShader.frag");
+	std::string current_working_dir = "./src/6_get_started_transformations";//记得改这个路径，真是麻烦得要死
+	std::string ver_path  = current_working_dir+"/shader/vertex.glsl";
+	std::string frag_path = current_working_dir+"/shader/frag.glsl";
+	
+	Shader ourShader(ver_path.c_str(), frag_path.c_str());
 	
 	
-	//-----------------------传递Uniform(别问了要先use这个shader)-------------------
+	//-----------------------传递Uniform(别忘了要先use这个shader)-------------------
 	ourShader.use();
 	glUniform1i(glGetUniformLocation(ourShader.ID, "texture1"), 0);//可以这样设置
 	ourShader.setInt("texture2", 1);//也可以利用封装好的Shader类的函数这样设置
+
 
 	//---------------------可以开始画图啦！---------------------------
 	//Render loop
@@ -184,6 +190,14 @@ int main(){
 		glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
 
+		//矩阵变换
+		glm::mat4 trans = glm::mat4(1.0f); //glm要这样写，教程没改
+		trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
+		trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));//绕着z轴(0,0,1)旋转第二个参数的弧度, z轴是怼出屏幕的那条轴
+		ourShader.use();
+		unsigned int transformLoc = glGetUniformLocation(ourShader.ID, "trans");
+		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+
 		//绘制长方形
 		ourShader.setFloat("mixValue", mixValue);
 		ourShader.use();
@@ -192,8 +206,6 @@ int main(){
 		
 		//esc关闭窗口
 		processInput(window);
-		
-
 		//glfw的swap buffer以及poll IO events
 		glfwSwapBuffers(window);//交换颜色buffer, 双缓冲：当所有的渲染指令执行完毕后，我们交换(Swap)前缓冲和后缓冲，这样图像就立即呈显出来
 		glfwPollEvents();//检查有没有触发什么事件（比如键盘输入、鼠标移动等）、更新窗口状态，并调用对应的回调函数（可以通过回调方法手动设置）。
@@ -203,7 +215,6 @@ int main(){
 	glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
-
 	//释放资源！
 	glfwTerminate();
 	return 0;
@@ -211,7 +222,8 @@ int main(){
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height){//让Viewport跟随窗口大小改变而改变的回调
 	//设置Viewport大小，前两个参数是左下角，第3,4个是宽高
-    glViewport(0, 0, width, height);//OpenGL坐标范围只是[-1,1],实际上显示的是时候需要进行坐标映射到width*height的区域
+    window=window;//老是报warning，烦死了
+	glViewport(0, 0, width, height);//OpenGL坐标范围只是[-1,1],实际上显示的是时候需要进行坐标映射到width*height的区域
 }
 
 void processInput(GLFWwindow* window){

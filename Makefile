@@ -2,7 +2,6 @@
 # 'make'        build executable file 'main'
 # 'make clean'  removes all .o and executable files
 #
-
 # define the Cpp compiler to use
 CXX = g++
 
@@ -18,7 +17,8 @@ LFLAGS =
 OUTPUT	:= output
 
 # define source directory
-SRC		:= src
+SRC		:= src/$(dir) # 传递var变量定义执行文件所在目录
+CLAEN_SRC := src/$(dir)/*.o # 删除所有.o文件
 
 # define include directory
 INCLUDE	:= include
@@ -66,6 +66,7 @@ OBJECTS		:= $(SOURCES:.cpp=.o)
 
 OUTPUTMAIN	:= $(call FIXPATH,$(OUTPUT)/$(MAIN))
 
+
 all: $(OUTPUT) $(MAIN)
 	@echo Executing 'all' complete!
 
@@ -88,6 +89,7 @@ clean:
 	$(RM) $(call FIXPATH,$(OBJECTS))
 	@echo Cleanup complete!
 
+# 此处./src/$(dir) 传递main函数 argv 的参数
 run: all
-	./$(OUTPUTMAIN)
+	./$(OUTPUTMAIN) ./src/$(dir)
 	@echo Executing 'run: all' complete!

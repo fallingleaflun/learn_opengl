@@ -12,7 +12,7 @@
                 "command": "powershell",
                 "args": [
                     "-c",
-                    "mingw32-make"
+                    "make dir=6_get_started_transformations", //修改这个来调试
                 ]
             },
             "linux": {

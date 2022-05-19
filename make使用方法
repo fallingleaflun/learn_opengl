@@ -1,4 +1,0 @@
-make run dir=01_test_glfw
-用gdb调试
-gdb ./output/main.exe
-r(运行)

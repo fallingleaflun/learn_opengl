@@ -5,9 +5,11 @@ layout(location = 2) in vec2 TexCoords;
 
 out vec2 outTexCoord;
 
-uniform mat4 trans;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
 
 void main() {
-  gl_Position = trans * vec4(Position, 1.0f); // 左乘一个变换矩阵
+  gl_Position = projection * view * model * vec4(Position, 1.0f); //矩阵顺序从右往左读
   outTexCoord = TexCoords;
 }

@@ -55,8 +55,22 @@ int main(){
 
 
 	//----------------------直接使用geometry来构造简单的基础几何体---------------
-	PlaneGeometry planeGeometry(1.0, 1.0, 1.0, 1.0);
-	BoxGeometry boxGeometry(1.0f, 1.0f, 1.0f);
+	BoxGeometry box_ary[10];
+	for(int i=0; i<10; i++){
+		box_ary[i]=BoxGeometry(1.0f, 1.0f, 1.0f);
+	}
+	glm::vec3 cubePositions[] = {
+		glm::vec3( 0.0f,  0.0f,  0.0f), 
+		glm::vec3( 2.0f,  5.0f, -15.0f), 
+		glm::vec3(-1.5f, -2.2f, -2.5f),  
+		glm::vec3(-3.8f, -2.0f, -12.3f),  
+		glm::vec3( 2.4f, -0.4f, -3.5f),  
+		glm::vec3(-1.7f,  3.0f, -7.5f),  
+		glm::vec3( 1.3f, -2.0f, -2.5f),  
+		glm::vec3( 1.5f,  2.0f, -2.5f), 
+		glm::vec3( 1.5f,  0.2f, -1.5f), 
+		glm::vec3(-1.3f,  1.0f, -1.5f)  
+	};
 
 
 	//-----------------------创建一个封装好的着色器对象-------------------------
@@ -120,6 +134,13 @@ int main(){
 	ourShader.setInt("texture1", 0);
 	ourShader.setInt("texture2", 1);
 	
+	//矩阵先这样初始化
+	glm::mat4 view = glm::mat4(1.0f); //观察矩阵
+	glm::mat4 projection = glm::mat4(1.0f); //投影矩阵
+	view = glm::translate(view, glm::vec3(-0.0f, -0.0f, -5.0f));//观察矩阵，向我们要进行移动场景的反方向移动。
+	projection = glm::perspective(glm::radians(45.0f), float(SCR_WIDTH) / float(SCR_HEIGHT), 0.1f, 100.0f);//透视投影矩阵
+	ourShader.setMat4("view", view);//基本不变，不放入循环
+	ourShader.setMat4("projection", projection);//基本不变，不放入循环
 
 	//---------------------可以开始画图啦！---------------------------
 	//Render loop
@@ -138,22 +159,23 @@ int main(){
         glBindTexture(GL_TEXTURE_2D, texture2);
 		//混合纹理
 		ourShader.setFloat("mixValue", mixValue);
-
-		//矩阵变换
-		glm::mat4 trans = glm::mat4(1.0f); //glm要这样写，教程没改
-		trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
-		trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0f, 0.5f, 1.0f));//绕着z轴(0,0,1)旋转第二个参数的弧度, z轴是怼出屏幕的那条轴
-		ourShader.use();
-		unsigned int transformLoc = glGetUniformLocation(ourShader.ID, "trans");
-		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
-
-		//绘制图形
-		ourShader.use();
-		glBindVertexArray(boxGeometry.VAO);//使用封装好的Geometry对象
-		// glDrawElements(GL_POINTS, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
-		// glDrawElements(GL_LINE_LOOP, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
-		glDrawElements(GL_TRIANGLES, boxGeometry.indices.size(), GL_UNSIGNED_INT, 0);
 		
+		for(int i=0; i<10; i++){
+			//坐标系统变换
+			glm::mat4 model = glm::mat4(1.0f); //模型矩阵
+			model = glm::translate(model, cubePositions[i]);
+			model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.0f, 0.5f, 1.0f));//模型绕着z轴(0,0,1)旋转第二个参数指定的弧度, z轴是怼出屏幕的那条轴
+		
+			ourShader.use();
+			ourShader.setMat4("model", model);
+
+			//绘制图形
+			ourShader.use();
+			glBindVertexArray(box_ary[i].VAO);//使用封装好的Geometry对象
+			// glDrawElements(GL_POINTS, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+			// glDrawElements(GL_LINE_LOOP, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+			glDrawElements(GL_TRIANGLES, box_ary[i].indices.size(), GL_UNSIGNED_INT, 0);
+		}
 		//输入交互
 		processInput(window);
 		//glfw的swap buffer以及poll IO events
@@ -162,7 +184,9 @@ int main(){
 	}
 	
 	//释放资源！
-	planeGeometry.dispose();
+	for(int i=0; i<10; i++){
+		box_ary[i].dispose();
+	}
 	glfwTerminate();
 	return 0;
 }

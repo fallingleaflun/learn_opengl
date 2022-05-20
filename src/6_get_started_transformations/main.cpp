@@ -1,5 +1,8 @@
+#ifndef GL_RELATED
+#define GL_RELATED
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#endif
 #include <iostream>
 #include <cmath>
 #include <iostream>
@@ -12,6 +15,7 @@
 #include <direct.h>  
 #include <stdio.h> 
 #include <string>
+#include <geometry/PlaneGeometry.h>
 using namespace std;
 
 //函数头
@@ -49,59 +53,18 @@ int main(){
 		return -1;
 	}
 
-	//-------------------查询glsl能支持(声明)多少个顶点属性,一般是16个----------------------
-	int nrAttributes;
-	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
-	std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
-	//-------------------原始数据相关----------------------
-	float vertices[] = {//点
-		//位置                //纹理坐标
-         0.5f,  0.5f, 0.0f,   1.0f, 1.0f, // top right
-         0.5f, -0.5f, 0.0f,   1.0f, 0.0f, // bottom right
-        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, // bottom left
-        -0.5f,  0.5f, 0.0f,   0.0f, 1.0f  // top left 
-    };
-    unsigned int indices[] = {//索引
-        0, 1, 3, // first triangle
-        1, 2, 3  // second triangle
-    };
+	//----------------------直接使用geometry来构造简单的基础几何体---------------
+	PlaneGeometry planeGeometry(1.0, 1.0, 1.0, 1.0);
 
 
-	//---------------------内存/显存对象相关------------------------------------------
-	//VBO：Vertex Buffer Object，VBO, VBO用来管理显存
-	//VAO：Vertex Array Object，可以像VBO那样被绑定，任何随后的顶点属性调用都会储存在这个VAO中。
-	//EBO: Element Buffer Object, 指定构成元素(比如三角形）的索引
-	//VBO组成一个名为VAO的数组. 以数组的形式方便管理VBO
-	unsigned int VBO, VAO, EBO;
-	glGenBuffers(1, &VBO);//产生1个VBO
-	glGenVertexArrays(1, &VAO);//产生1个VAO.使用的是glGenVertexArrays
-	glGenBuffers(1, &EBO);//产生1个EBO
+	//-----------------------创建一个封装好的着色器对象-------------------------
+	std::string current_working_dir = "./src/6_get_started_transformations";//记得改这个路径，真是麻烦得要死
+	std::string ver_path  = current_working_dir+"/shader/vertex.glsl";
+	std::string frag_path = current_working_dir+"/shader/frag.glsl";
+	Shader ourShader(ver_path.c_str(), frag_path.c_str());
 	
-	glBindVertexArray(VAO);//先绑定VAO，之后再绑定VBO，这一步究竟是不是把VAO和GL_ARRAY_BUFFER绑在一起？
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);//VBO绑定到GL_ARRAY_BUFFER
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-				//把用户数据复制到当前的数组缓冲，第四个参数有三种形式
-				// GL_STATIC_DRAW ：数据不会或几乎不会改变。
-				// GL_DYNAMIC_DRAW：数据会被改变很多。
-				// GL_STREAM_DRAW ：数据每次绘制时都会改变。
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-	//链接顶点的位置属性(其实就是增加顶点的信息)
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);//设置顶点属性指针所要访问的内存布局(理解成定义一种访存用的指针)
-						//0:顶点属性位置值，与glsl的layout(location=0)对应
-						//3：顶点属性大小因为有三个坐标
-						//GLfloat：数据类型
-						//GL_FALSE：是否标准化
-						//stride(步长)
-						//(void*)0：位置数据在缓存中起始位置的偏移量
-	glEnableVertexAttribArray(0);//以顶点属性位置值作为参数，启用顶点属性
-	//链接顶点的纹理属性
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(3*sizeof(float)));
-	glEnableVertexAttribArray(1);
-
-	
 	//------------------------------------创建纹理---------------------------
     unsigned int texture1, texture2; //纹理的ID引用
     // texture 1
@@ -117,7 +80,6 @@ int main(){
     // 加载图像，创建纹理，并生成mipmaps
     int width, height, nrChannels;
     stbi_set_flip_vertically_on_load(true); //因为OpenGL要求y轴0.0坐标是在图片的底部的，但是图片的y轴0.0坐标通常在顶部, 调用这个函数翻转y轴
-	// unsigned char *data = stbi_load("./res/img/container.jpg", &width, &height, &nrChannels, 0);//加载图像
 	unsigned char *data = stbi_load("E:/code/learn_opengl/res/img/container.jpg", &width, &height, &nrChannels, 0);//加载图像, 路径需要是stb_image.h为根的相对路径
 	if (data){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -137,20 +99,15 @@ int main(){
     }
     stbi_image_free(data);//释放空间！
     // texture 2
-    // ---------
     glGenTextures(1, &texture2);
     glBindTexture(GL_TEXTURE_2D, texture2);
-    // set the texture wrapping parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-    // set texture filtering parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // load image, create texture and generate mipmaps
     data = stbi_load("E:/code/learn_opengl/res/img/awesomeface.png", &width, &height, &nrChannels, 0);
 	if (data){
-        // note that the awesomeface.png has transparency and thus an alpha channel, so make sure to tell OpenGL the data type is of GL_RGBA
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);//怎么知道有没有A通道
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
     }
     else{
@@ -158,21 +115,12 @@ int main(){
 		cout << stbi_failure_reason() << endl;
     }
     stbi_image_free(data);
-	
-
-	//-----------------------创建一个封装好的着色器对象-------------------------
-	std::string current_working_dir = "./src/6_get_started_transformations";//记得改这个路径，真是麻烦得要死
-	std::string ver_path  = current_working_dir+"/shader/vertex.glsl";
-	std::string frag_path = current_working_dir+"/shader/frag.glsl";
-	
-	Shader ourShader(ver_path.c_str(), frag_path.c_str());
-	
-	
-	//-----------------------传递Uniform(别忘了要先use这个shader)-------------------
 	ourShader.use();
-	glUniform1i(glGetUniformLocation(ourShader.ID, "texture1"), 0);//可以这样设置
-	ourShader.setInt("texture2", 1);//也可以利用封装好的Shader类的函数这样设置
-
+	ourShader.setInt("texture1", 0);
+	ourShader.setInt("texture2", 1);
+	//混合纹理
+	ourShader.setFloat("mixValue", mixValue);
+	
 
 	//---------------------可以开始画图啦！---------------------------
 	//Render loop
@@ -198,11 +146,12 @@ int main(){
 		unsigned int transformLoc = glGetUniformLocation(ourShader.ID, "trans");
 		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
 
-		//绘制长方形
-		ourShader.setFloat("mixValue", mixValue);
+		//绘制图形
 		ourShader.use();
-		glBindVertexArray(VAO);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glBindVertexArray(planeGeometry.VAO);//使用封装好的Geometry对象
+		// glDrawElements(GL_POINTS, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_LINE_LOOP, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+		// glDrawElements(GL_TRIANGLES, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
 		
 		//esc关闭窗口
 		processInput(window);
@@ -212,10 +161,7 @@ int main(){
 	}
 	
 	//释放资源！
-	glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
-	//释放资源！
+	planeGeometry.dispose();
 	glfwTerminate();
 	return 0;
 }

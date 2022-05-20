@@ -1,8 +1,3 @@
-#ifndef GL_RELATED
-#define GL_RELATED
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#endif
 #ifndef BUFFER_GROMETRY
 #define BUFFER_GROMETRY
 #include <glm/glm.hpp>
@@ -84,15 +79,14 @@ protected:
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
 
+
     // 设置顶点属性指针
     // Position
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0);
-
     // Normal
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, Normal));
-
     // TexCoords
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, TexCoords));

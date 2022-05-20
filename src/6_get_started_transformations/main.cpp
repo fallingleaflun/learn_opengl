@@ -1,8 +1,5 @@
-#ifndef GL_RELATED
-#define GL_RELATED
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#endif
 #include <iostream>
 #include <cmath>
 #include <iostream>
@@ -16,6 +13,7 @@
 #include <stdio.h> 
 #include <string>
 #include <geometry/PlaneGeometry.h>
+#include <geometry/BoxGeometry.h>
 using namespace std;
 
 //函数头
@@ -52,10 +50,13 @@ int main(){
 		cout<<"Fail initialize GLAD"<<endl;
 		return -1;
 	}
+	//开启深度测试
+	glEnable(GL_DEPTH_TEST);
 
 
 	//----------------------直接使用geometry来构造简单的基础几何体---------------
 	PlaneGeometry planeGeometry(1.0, 1.0, 1.0, 1.0);
+	BoxGeometry boxGeometry(1.0f, 1.0f, 1.0f);
 
 
 	//-----------------------创建一个封装好的着色器对象-------------------------
@@ -118,8 +119,6 @@ int main(){
 	ourShader.use();
 	ourShader.setInt("texture1", 0);
 	ourShader.setInt("texture2", 1);
-	//混合纹理
-	ourShader.setFloat("mixValue", mixValue);
 	
 
 	//---------------------可以开始画图啦！---------------------------
@@ -127,7 +126,7 @@ int main(){
 	while(!glfwWindowShouldClose(window)){
 		//清屏
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);//清空时的背景色
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);//清除深度缓存位
 
 		//在调用glDrawElements之前为纹理单元绑定纹理
 		//纹理单元(Texture Unit): 一个纹理的位置值
@@ -137,23 +136,25 @@ int main(){
 		glBindTexture(GL_TEXTURE_2D, texture1);//绑定texture1到GL_TEXTURE0上
 		glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
+		//混合纹理
+		ourShader.setFloat("mixValue", mixValue);
 
 		//矩阵变换
 		glm::mat4 trans = glm::mat4(1.0f); //glm要这样写，教程没改
 		trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
-		trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));//绕着z轴(0,0,1)旋转第二个参数的弧度, z轴是怼出屏幕的那条轴
+		trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0f, 0.5f, 1.0f));//绕着z轴(0,0,1)旋转第二个参数的弧度, z轴是怼出屏幕的那条轴
 		ourShader.use();
 		unsigned int transformLoc = glGetUniformLocation(ourShader.ID, "trans");
 		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
 
 		//绘制图形
 		ourShader.use();
-		glBindVertexArray(planeGeometry.VAO);//使用封装好的Geometry对象
+		glBindVertexArray(boxGeometry.VAO);//使用封装好的Geometry对象
 		// glDrawElements(GL_POINTS, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
-		glDrawElements(GL_LINE_LOOP, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
-		// glDrawElements(GL_TRIANGLES, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+		// glDrawElements(GL_LINE_LOOP, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES, boxGeometry.indices.size(), GL_UNSIGNED_INT, 0);
 		
-		//esc关闭窗口
+		//输入交互
 		processInput(window);
 		//glfw的swap buffer以及poll IO events
 		glfwSwapBuffers(window);//交换颜色buffer, 双缓冲：当所有的渲染指令执行完毕后，我们交换(Swap)前缓冲和后缓冲，这样图像就立即呈显出来

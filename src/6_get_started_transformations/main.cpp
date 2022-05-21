@@ -19,6 +19,7 @@ using namespace std;
 //函数头
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 // 窗口大小
 const unsigned int SCR_WIDTH = 800;
@@ -26,6 +27,14 @@ const unsigned int SCR_HEIGHT = 600;
 
 //processInput回调改变的全局变量
 float mixValue = 0.2f;//改变shader的一个名为mixValue的uniform
+glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f,  5.0f);//相机位置
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -5.0f);//镜头朝向
+glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);//相机顶部朝向
+float deltaTime = 0.0f; // 当前帧与上一帧的时间差
+float lastFrame = 0.0f; // 上一帧的时间
+float lastX = 400, lastY = 300;//鼠标位置
+float yaw=0, pitch=0;//两个欧拉角
+bool firstMouse=true;
 
 int main(){
 	//------------------基本固定的代码----------------------------------
@@ -135,12 +144,23 @@ int main(){
 	ourShader.setInt("texture2", 1);
 	
 	//矩阵先这样初始化
-	glm::mat4 view = glm::mat4(1.0f); //观察矩阵
 	glm::mat4 projection = glm::mat4(1.0f); //投影矩阵
-	view = glm::translate(view, glm::vec3(-0.0f, -0.0f, -5.0f));//观察矩阵，向我们要进行移动场景的反方向移动。
 	projection = glm::perspective(glm::radians(45.0f), float(SCR_WIDTH) / float(SCR_HEIGHT), 0.1f, 100.0f);//透视投影矩阵
-	ourShader.setMat4("view", view);//基本不变，不放入循环
 	ourShader.setMat4("projection", projection);//基本不变，不放入循环
+
+	//构造摄像机坐标系统
+	// glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 5.0f);//指定相机位置
+	// glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);//指定目标位置
+	// glm::vec3 cameraDirection = glm::normalize(cameraPos-cameraTarget);//计算镜头方向(与镜头方向相反)
+	// glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);//指定“上向量"，这个上向量是标识空间的上
+	// glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));//计算相机的右方向
+	// glm::vec3 cameraUp = glm::normalize(glm::cross(cameraDirection, cameraRight));//计算相机的上方向
+	// //lookAt矩阵
+	// glm::mat4 view = glm::lookAt(cameraPos, cameraTarget, cameraUp);
+	// ourShader.setMat4("view", view);//基本不变，不放入循环
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);//不显示光标并且不离开窗口
+	glfwSetCursorPosCallback(window, mouse_callback);
+
 
 	//---------------------可以开始画图啦！---------------------------
 	//Render loop
@@ -168,6 +188,9 @@ int main(){
 		
 			ourShader.use();
 			ourShader.setMat4("model", model);
+			//lookAt矩阵
+			glm::mat4 view = glm::lookAt(cameraPos, cameraFront+cameraPos, cameraUp);//cameraFront=cameraTarget-cameraPos
+			ourShader.setMat4("view", view);//基本不变，不放入循环
 
 			//绘制图形
 			ourShader.use();
@@ -181,6 +204,11 @@ int main(){
 		//glfw的swap buffer以及poll IO events
 		glfwSwapBuffers(window);//交换颜色buffer, 双缓冲：当所有的渲染指令执行完毕后，我们交换(Swap)前缓冲和后缓冲，这样图像就立即呈显出来
 		glfwPollEvents();//检查有没有触发什么事件（比如键盘输入、鼠标移动等）、更新窗口状态，并调用对应的回调函数（可以通过回调方法手动设置）。
+
+		//衡量渲染速度以动态改变速度变化速率
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
 	}
 	
 	//释放资源！
@@ -214,4 +242,55 @@ void processInput(GLFWwindow* window){
         if (mixValue <= 0.0f)
             mixValue = 0.0f;
     }
+	float cameraSpeed = 1.5f*deltaTime; // adjust accordingly
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS){
+        cameraPos += cameraSpeed * cameraFront;
+	}
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS){
+        cameraPos -= cameraSpeed * cameraFront;
+	}
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS){
+        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	}
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){
+        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	}
+}
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos){
+	window=window;//warning煩死了
+	if(firstMouse) // 这个bool变量初始时是设定为true的
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+	float xoffset=xpos-lastX;
+	float yoffset=ypos-lastY;
+	lastX = xpos;
+    lastY = ypos;
+	//防止用力過猛
+	if(-7<xoffset && xoffset<7){
+		xoffset = xoffset>0? exp(xoffset)-1.0 : 1-exp(-xoffset);
+	}
+	if(-7<yoffset && yoffset<7){
+		yoffset = yoffset>0? exp(yoffset)-1.0 : 1-exp(-yoffset);
+	}
+	float sensitivity = 0.5f;
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+	yaw   += xoffset;
+	pitch += yoffset;
+	if(pitch > 89.0f){
+  		pitch =  89.0f;
+	}
+	if(pitch < -89.0f){
+		pitch = -89.0f;
+	}
+	cout<<"pitch:"<<pitch<<", yaw:"<<yaw<<endl;
+	glm::vec3 front;
+    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    front.y = sin(glm::radians(pitch));
+    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    cameraFront = glm::normalize(front);
 }

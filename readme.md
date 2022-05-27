@@ -20,3 +20,5 @@ make run dir=src下面的某个目录
   - 可能是路径问题
     - 我在vscode的launch.json可以设置cwd，用vscode的code-runner是可以的
     - 但是在用make命令的时候这个设置并不会有效
+
+这个Makefile对于只修改了include里面的文件的情况下是不会认为发生改变的，要改一下main.cpp才会改变

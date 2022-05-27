@@ -276,7 +276,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos){
 	if(-7<yoffset && yoffset<7){
 		yoffset = yoffset>0? exp(yoffset)-1.0 : 1-exp(-yoffset);
 	}
-	float sensitivity = 0.5f;
+	float sensitivity = 0.005f;
 	xoffset *= sensitivity;
 	yoffset *= sensitivity;
 	yaw   += xoffset;

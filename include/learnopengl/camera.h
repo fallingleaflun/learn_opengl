@@ -131,7 +131,7 @@ void Camera::ProcessMouseMovement(float xoffset, float yoffset, GLboolean constr
         if (Pitch < -89.0f)
             Pitch = -89.0f;
     }
-    std::cout<<"pitch:"<< Pitch <<", yaw:"<< Yaw << std::endl;
+    //std::cout<<"pitch:"<< Pitch <<", yaw:"<< Yaw << std::endl;
 
     // update Front, Right and Up Vectors using the updated Euler angles
     updateCameraVectors();

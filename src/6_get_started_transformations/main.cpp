@@ -40,9 +40,14 @@ bool firstMouse = true;
 float deltaTime = 0.0f; // 当前帧与上一帧的时间差
 float lastFrame = 0.0f; // 上一帧的时间
 
+//环境光的颜色以及光强因子
+glm::vec3 ambientLightColor = glm::vec3(1.0f, 1.0f, 1.0f);//环境光的颜色
+float ambientStrength = 0.1f;//环境光强因子
+
 // 光源的位置和颜色
-glm::vec3 lightPosition = glm::vec3(1.0, 1.5, 0.0); // 光照位置
-glm::vec3 lightColor = glm::vec3(0.5f, 1.0f, 1.0f);//光照颜色
+glm::vec3 lightPosition = glm::vec3(1.0, 1.5, 0.0); //光源位置
+glm::vec3 lightColor = glm::vec3(0.0f, 1.0f, 0.0f);//光源颜色
+float specularStrength;//镜面反射常量
 
 int main()
 {
@@ -173,7 +178,7 @@ int main()
 	while (!glfwWindowShouldClose(window))
 	{
 		//清屏
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);				//清空时的背景色
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);				//清空时的背景色
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //清除深度缓存位
 
 		//在调用glDrawElements之前为纹理单元绑定纹理
@@ -196,13 +201,17 @@ int main()
 		ourShader.setMat4("view", view);
 		ourShader.setMat4("projection", projection);
 		ourShader.setVec3("lightColor", lightColor);
+		ourShader.setVec3("lightPos", lightPosition);
+		ourShader.setVec3("ambientLightColor", ambientLightColor);
+		ourShader.setFloat("ambientStrength", ambientStrength);
+		ourShader.setFloat("specularStrength", specularStrength);
 
 		for (int i = 0; i < 10; i++)
 		{
 			// 在该帧模型自身旋转，没有用四元数，下面这段代码要放在draw之前才有用
 			glm::mat4 model = glm::mat4(1.0f);//模型矩阵, make sure to initialize matrix to identity matrix first
 			model = glm::translate(model, cubePositions[i]);
-			model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));
+			//model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));
 			ourShader.use();
 			ourShader.setMat4("model", model);
 
@@ -216,7 +225,8 @@ int main()
 		// 绘制灯光物体
 		lightObjectShader.use();
 		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(lightPosition.x * glm::sin(glfwGetTime()), lightPosition.y, lightPosition.z));
+		lightPosition = glm::vec3(lightPosition.x * glm::sin(glfwGetTime()), lightPosition.y, lightPosition.z);//改变一下光源位置
+		model = glm::translate(model, lightPosition);//灯光物体的模型平移至光源所在位置
 		lightObjectShader.setMat4("model", model);
 		lightObjectShader.setMat4("view", view);
 		lightObjectShader.setMat4("projection", projection);

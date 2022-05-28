@@ -14,6 +14,7 @@
 #include <string>
 #include <geometry/PlaneGeometry.h>
 #include <geometry/BoxGeometry.h>
+#include <geometry/SphereGeometry.h>
 #include <learnopengl/camera.h>
 using namespace std;
 
@@ -38,6 +39,10 @@ bool firstMouse = true;
 // frame time
 float deltaTime = 0.0f; // 当前帧与上一帧的时间差
 float lastFrame = 0.0f; // 上一帧的时间
+
+// 光源的位置和颜色
+glm::vec3 lightPosition = glm::vec3(1.0, 1.5, 0.0); // 光照位置
+glm::vec3 lightColor = glm::vec3(0.5f, 1.0f, 1.0f);//光照颜色
 
 int main()
 {
@@ -85,12 +90,16 @@ int main()
 		glm::vec3(1.5f, 2.0f, -2.5f),
 		glm::vec3(1.5f, 0.2f, -1.5f),
 		glm::vec3(-1.3f, 1.0f, -1.5f)};
+	SphereGeometry lightSphere=SphereGeometry(0.1, 10.0, 10.0);//光源显示为球形
 
-	//-----------------------创建一个封装好的着色器对象-------------------------
+	//-----------------------创建封装好的着色器对象-------------------------
 	std::string current_working_dir = "./src/6_get_started_transformations"; //记得改这个路径，真是麻烦得要死
 	std::string ver_path = current_working_dir + "/shader/vertex.glsl";
 	std::string frag_path = current_working_dir + "/shader/frag.glsl";
+	std::string ver_path2 = current_working_dir + "/shader/light_object_vertex.glsl";
+	std::string frag_path2 = current_working_dir + "/shader/light_object_frag.glsl";
 	Shader ourShader(ver_path.c_str(), frag_path.c_str());
+	Shader lightObjectShader(ver_path2.c_str(), frag_path2.c_str());
 
 	//------------------------------------创建纹理---------------------------
 	unsigned int texture1, texture2; //纹理的ID引用
@@ -183,8 +192,10 @@ int main()
 		glm::mat4 projection = glm::mat4(1.0f);
 		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
 		projection = glm::perspective(glm::radians(camera.Fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		ourShader.use();//记得在修改前use()一下，否则改的是另一个shader
 		ourShader.setMat4("view", view);
 		ourShader.setMat4("projection", projection);
+		ourShader.setVec3("lightColor", lightColor);
 
 		for (int i = 0; i < 10; i++)
 		{
@@ -201,6 +212,17 @@ int main()
 			// glDrawElements(GL_LINE_LOOP, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
 			glDrawElements(GL_TRIANGLES, box_ary[i].indices.size(), GL_UNSIGNED_INT, 0);
 		}
+
+		// 绘制灯光物体
+		lightObjectShader.use();
+		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(lightPosition.x * glm::sin(glfwGetTime()), lightPosition.y, lightPosition.z));
+		lightObjectShader.setMat4("model", model);
+		lightObjectShader.setMat4("view", view);
+		lightObjectShader.setMat4("projection", projection);
+		lightObjectShader.setVec3("lightColor", lightColor);
+		glBindVertexArray(lightSphere.VAO);
+		glDrawElements(GL_TRIANGLES, lightSphere.indices.size(), GL_UNSIGNED_INT, 0);
 
 		//输入交互
 		processInput(window);
@@ -219,6 +241,7 @@ int main()
 	{
 		box_ary[i].dispose();
 	}
+	lightSphere.dispose();
 	glfwTerminate();
 	return 0;
 }

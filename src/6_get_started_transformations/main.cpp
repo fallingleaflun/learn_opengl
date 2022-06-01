@@ -23,6 +23,7 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xpos, double ypos);
+unsigned int loadTexture(char const *path);
 
 // 窗口大小
 const unsigned int SCR_WIDTH = 800;
@@ -39,15 +40,6 @@ bool firstMouse = true;
 // frame time
 float deltaTime = 0.0f; // 当前帧与上一帧的时间差
 float lastFrame = 0.0f; // 上一帧的时间
-
-//环境光的颜色以及光强因子
-glm::vec3 ambientLightColor = glm::vec3(1.0f, 1.0f, 1.0f);//环境光的颜色
-float ambientStrength = 0.1f;//环境光强因子
-
-// 光源的位置和颜色
-glm::vec3 lightPosition = glm::vec3(1.0, 1.5, 0.0); //光源位置
-glm::vec3 lightColor = glm::vec3(0.0f, 1.0f, 0.0f);//光源颜色
-float specularStrength;//镜面反射常量
 
 int main()
 {
@@ -106,63 +98,33 @@ int main()
 	Shader ourShader(ver_path.c_str(), frag_path.c_str());
 	Shader lightObjectShader(ver_path2.c_str(), frag_path2.c_str());
 
-	//------------------------------------创建纹理---------------------------
-	unsigned int texture1, texture2; //纹理的ID引用
-	// texture 1
-	glGenTextures(1, &texture1);			//产生1个纹理
-	glBindTexture(GL_TEXTURE_2D, texture1); //绑定这个纹理
-	// 为当前绑定的纹理对象设置环绕模式(texture wrap)
-	// 纹理坐标的原点在左下角，横轴是s轴，纵轴是t轴
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); // set texture wrapping to GL_REPEAT (default wrapping method)
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	// 为当前绑定的纹理对象设置过滤方式(text_xxx_filter)
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); //被缩小时使用线性过滤
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); //被放大时使用线性过滤
-	// 加载图像，创建纹理，并生成mipmaps
-	int width, height, nrChannels;
-	stbi_set_flip_vertically_on_load(true);																			//因为OpenGL要求y轴0.0坐标是在图片的底部的，但是图片的y轴0.0坐标通常在顶部, 调用这个函数翻转y轴
-	unsigned char *data = stbi_load("E:/code/learn_opengl/res/img/container.jpg", &width, &height, &nrChannels, 0); //加载图像, 路径需要是stb_image.h为根的相对路径
-	if (data)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-		//使用图像数据生成纹理
-		// GLTEXTURE_2D：指定Target，GLTEXTURE_2D意味着会生成与当前绑定的纹理对象在同一个目标上的纹理
-		// 0: mipmaps的的级别，0是默认
-		// GL_RGB：纹理存储格式
-		//纹理宽度和高度
-		// 0：历史遗留问题
-		// GL_UNSIGNED_BYTE: 源图的格式和数据类型，加载图像RGB值加载图像并存储为char(byte)数组
-		// data: 图像数据
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else
-	{
-		std::cout << "Failed to load texture" << std::endl;
-		cout << stbi_failure_reason() << endl;
-	}
-	stbi_image_free(data); //释放空间！
-	// texture 2
-	glGenTextures(1, &texture2);
-	glBindTexture(GL_TEXTURE_2D, texture2);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT); // set texture wrapping to GL_REPEAT (default wrapping method)
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	data = stbi_load("E:/code/learn_opengl/res/img/awesomeface.png", &width, &height, &nrChannels, 0);
-	if (data)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else
-	{
-		std::cout << "Failed to load texture" << std::endl;
-		cout << stbi_failure_reason() << endl;
-	}
-	stbi_image_free(data);
+	//------------------------------------纹理贴图---------------------------
+	unsigned int texture1 = loadTexture("E:/code/learn_opengl/res/img/container.jpg");
+	unsigned int texture2 = loadTexture("E:/code/learn_opengl/res/img/awesomeface.png"); //纹理的ID引用
 	ourShader.use();
 	ourShader.setInt("texture1", 0);
 	ourShader.setInt("texture2", 1);
+
+	//---------------------------------------光照贴图--------------------------------------
+	unsigned int diffuseMap = loadTexture("E:/code/learn_opengl/res/img/container2.png");
+	unsigned int specularMap = loadTexture("E:/code/learn_opengl/res/img/container2_specular.png");
+	ourShader.use();
+	ourShader.setInt("material.diffuse", 2);//通过这种方式去设置封装为struct的值！！！！！！！！！！
+	ourShader.setInt("material.specular", 3);
+
+	//---------------------------------------光源相关--------------------------------------
+	// 不需要动态改变的值直接在渲染循环外传给shader，否则设置一个变量，在渲染循环内改变
+	// 光源的位置和颜色
+	glm::vec3 lightPosition = glm::vec3(1.0, 1.5, 0.0); //光源位置
+	ourShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));//光源颜色
+	ourShader.setFloat("ambientStrength", 0.9);//环境光强因子
+	// 传递材质属性
+	ourShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+	ourShader.setFloat("material.shininess", 64.0f);
+	// 设置光照的三个属性
+	ourShader.setVec3("light.ambient", 0.4f, 0.4f, 0.4f);
+	ourShader.setVec3("light.diffuse", 0.8f, 0.8f, 0.8f); // 将光照调暗了一些以搭配场景
+	ourShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 
 	//矩阵先这样初始化
 	glm::mat4 projection = glm::mat4(1.0f);																	//投影矩阵
@@ -200,11 +162,7 @@ int main()
 		ourShader.use();//记得在修改前use()一下，否则改的是另一个shader
 		ourShader.setMat4("view", view);
 		ourShader.setMat4("projection", projection);
-		ourShader.setVec3("lightColor", lightColor);
 		ourShader.setVec3("lightPos", lightPosition);
-		ourShader.setVec3("ambientLightColor", ambientLightColor);
-		ourShader.setFloat("ambientStrength", ambientStrength);
-		ourShader.setFloat("specularStrength", specularStrength);
 
 		for (int i = 0; i < 10; i++)
 		{
@@ -230,7 +188,6 @@ int main()
 		lightObjectShader.setMat4("model", model);
 		lightObjectShader.setMat4("view", view);
 		lightObjectShader.setMat4("projection", projection);
-		lightObjectShader.setVec3("lightColor", lightColor);
 		glBindVertexArray(lightSphere.VAO);
 		glDrawElements(GL_TRIANGLES, lightSphere.indices.size(), GL_UNSIGNED_INT, 0);
 
@@ -326,4 +283,43 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos)
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
 {
 	camera.ProcessMouseScroll(static_cast<float>(yoffset));
+}
+
+// 加载纹理贴图
+unsigned int loadTexture(char const *path)
+{
+  unsigned int textureID;
+  glGenTextures(1, &textureID);
+
+  int width, height, nrComponents;
+  unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
+  if (data)
+  {
+    GLenum format;
+	//处理不同通道数的图片
+    if (nrComponents == 1)
+      format = GL_RED;
+    else if (nrComponents == 3)
+      format = GL_RGB;
+    else if (nrComponents == 4)
+      format = GL_RGBA;
+
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    stbi_image_free(data);
+  }
+  else
+  {
+    std::cout << "Texture failed to load at path: " << path << std::endl;
+    stbi_image_free(data);
+  }
+
+  return textureID;
 }

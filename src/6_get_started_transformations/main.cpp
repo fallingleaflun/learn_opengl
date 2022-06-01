@@ -45,8 +45,8 @@ glm::vec3 ambientLightColor = glm::vec3(1.0f, 1.0f, 1.0f);//环境光的颜色
 float ambientStrength = 0.1f;//环境光强因子
 
 // 光源的位置和颜色
-glm::vec3 lightPosition = glm::vec3(1.0, 1.5, 0.0); //光源位置
-glm::vec3 lightColor = glm::vec3(0.0f, 1.0f, 0.0f);//光源颜色
+glm::vec3 lightPosition_ori = glm::vec3(0.5f, 0.5f, 0.5f); //光源一开始所在的位置
+glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);//光源颜色
 float specularStrength;//镜面反射常量
 
 int main()
@@ -79,23 +79,9 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 
 	//----------------------直接使用geometry来构造简单的基础几何体---------------
-	BoxGeometry box_ary[10];
-	for (int i = 0; i < 10; i++)
-	{
-		box_ary[i] = BoxGeometry(1.0f, 1.0f, 1.0f);
-	}
-	glm::vec3 cubePositions[] = {
-		glm::vec3(0.0f, 0.0f, 0.0f),
-		glm::vec3(2.0f, 5.0f, -15.0f),
-		glm::vec3(-1.5f, -2.2f, -2.5f),
-		glm::vec3(-3.8f, -2.0f, -12.3f),
-		glm::vec3(2.4f, -0.4f, -3.5f),
-		glm::vec3(-1.7f, 3.0f, -7.5f),
-		glm::vec3(1.3f, -2.0f, -2.5f),
-		glm::vec3(1.5f, 2.0f, -2.5f),
-		glm::vec3(1.5f, 0.2f, -1.5f),
-		glm::vec3(-1.3f, 1.0f, -1.5f)};
-	SphereGeometry lightSphere=SphereGeometry(0.1, 10.0, 10.0);//光源显示为球形
+	BoxGeometry box = BoxGeometry(2.0f, 2.0f, 2.0f);
+	glm::vec3 boxPosition = glm::vec3(0.0f, -2.0f, 1.0f);
+	SphereGeometry lightSphere=SphereGeometry(0.1, 50.0, 50.0);//光源显示为球形
 
 	//-----------------------创建封装好的着色器对象-------------------------
 	std::string current_working_dir = "./src/6_get_started_transformations"; //记得改这个路径，真是麻烦得要死
@@ -178,7 +164,7 @@ int main()
 	while (!glfwWindowShouldClose(window))
 	{
 		//清屏
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);				//清空时的背景色
+		glClearColor(0.6784, 0.6588, 0.8549, 1.0);				//清空时的背景色
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //清除深度缓存位
 
 		//在调用glDrawElements之前为纹理单元绑定纹理
@@ -192,6 +178,7 @@ int main()
 		//混合纹理
 		ourShader.setFloat("mixValue", mixValue);
 
+		glm::vec3 lightPosition = glm::vec3(lightPosition_ori.x * glm::sin(glfwGetTime()), lightPosition_ori.y, lightPosition_ori.z * glm::cos(glfwGetTime()));//改变一下光源位置
 		// 在该帧，摄像机的旋转平移
 		glm::mat4 view = camera.GetViewMatrix();
 		glm::mat4 projection = glm::mat4(1.0f);
@@ -205,27 +192,27 @@ int main()
 		ourShader.setVec3("ambientLightColor", ambientLightColor);
 		ourShader.setFloat("ambientStrength", ambientStrength);
 		ourShader.setFloat("specularStrength", specularStrength);
+		ourShader.setVec3("material.ambient",  1.0f, 0.5f, 0.31f);
+		ourShader.setVec3("material.diffuse",  1.0f, 0.5f, 0.31f);
+		ourShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+		ourShader.setFloat("material.shininess", 256.0f);
 
-		for (int i = 0; i < 10; i++)
-		{
-			// 在该帧模型自身旋转，没有用四元数，下面这段代码要放在draw之前才有用
-			glm::mat4 model = glm::mat4(1.0f);//模型矩阵, make sure to initialize matrix to identity matrix first
-			model = glm::translate(model, cubePositions[i]);
-			//model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));
-			ourShader.use();
-			ourShader.setMat4("model", model);
+		// 在该帧模型自身旋转，没有用四元数，下面这段代码要放在draw之前才有用
+		glm::mat4 model = glm::mat4(1.0f);//模型矩阵, make sure to initialize matrix to identity matrix first
+		model = glm::translate(model, boxPosition);
+		//model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));
+		ourShader.use();
+		ourShader.setMat4("model", model);
 
-			//绘制图形
-			glBindVertexArray(box_ary[i].VAO); //使用封装好的Geometry对象
-			// glDrawElements(GL_POINTS, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
-			// glDrawElements(GL_LINE_LOOP, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
-			glDrawElements(GL_TRIANGLES, box_ary[i].indices.size(), GL_UNSIGNED_INT, 0);
-		}
+		//绘制图形
+		glBindVertexArray(box.VAO); //使用封装好的Geometry对象
+		// glDrawElements(GL_POINTS, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+		// glDrawElements(GL_LINE_LOOP, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES, box.indices.size(), GL_UNSIGNED_INT, 0);
 
 		// 绘制灯光物体
 		lightObjectShader.use();
-		glm::mat4 model = glm::mat4(1.0f);
-		lightPosition = glm::vec3(lightPosition.x * glm::sin(glfwGetTime()), lightPosition.y, lightPosition.z);//改变一下光源位置
+		model = glm::mat4(1.0f);
 		model = glm::translate(model, lightPosition);//灯光物体的模型平移至光源所在位置
 		lightObjectShader.setMat4("model", model);
 		lightObjectShader.setMat4("view", view);
@@ -247,10 +234,7 @@ int main()
 	}
 
 	//释放资源！
-	for (int i = 0; i < 10; i++)
-	{
-		box_ary[i].dispose();
-	}
+	box.dispose();
 	lightSphere.dispose();
 	glfwTerminate();
 	return 0;

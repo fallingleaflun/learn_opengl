@@ -15,24 +15,34 @@ uniform vec3 lightPos;//光源的位置
 uniform vec3 viewPos;//摄像机位置
 uniform float specularStrength;//镜面反射常量
 
+struct Material {//材质属性
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+    float shininess;
+};
+
+uniform Material material;
+
 void main()
 {
     //片元本身的颜色
-    vec4 objectColor = mix(texture(texture1, outTexCoord), texture(texture2, vec2(1-outTexCoord.x, outTexCoord.y)), mixValue);
-    
+    //vec4 objectColor = mix(texture(texture1, outTexCoord), texture(texture2, vec2(1-outTexCoord.x, outTexCoord.y)), mixValue);
+    vec4 objectColor = vec4(0.9255, 0.7176, 0.7804, 1.0);
+
     //Phong光照计算
     //计算环境光
-    vec3 ambient = ambientStrength * ambientLightColor;
+    vec3 ambient = ambientStrength * material.ambient;
     //计算漫反射光, 法向量和光照方向的夹角的cos作为漫反射因子, 注意需要单位化，否则算出来不是夹角的cos！
     vec3 norm = normalize(outNormal);
     vec3 lightDir = normalize(lightPos - outFragPos);
     float diff = max(dot(norm, lightDir), 0.0);//max是因为夹角大于90度会变成负数，此时取0
-    vec3 diffuse = diff * lightColor;
+    vec3 diffuse = diff * material.diffuse;
     //计算镜面反射光, 出射光线方向和视线方向的夹角作为镜面反射因子
     vec3 reflectDir = reflect(-lightDir, norm);//调用reflect函数求出射方向向量，参数1是入射方向，参数2是法向量，都要求是单位向量
     vec3 viewDir = normalize(viewPos-outFragPos);
-    float spec = pow(max(dot(reflectDir, viewDir), 0), 256);//这个32是高光的反光度(Shininess)。
-    vec3 specular = specularStrength * spec * lightColor;
+    float spec = pow(max(dot(reflectDir, viewDir), 0), material.shininess);//这个32是高光的反光度(Shininess)。
+    vec3 specular = specularStrength * spec * material.specular;
 
     vec3 result = (ambient + diffuse + specular) * objectColor.xyz;
     FragColor = vec4(result, 1.0);

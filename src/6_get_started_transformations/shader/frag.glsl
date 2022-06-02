@@ -33,7 +33,8 @@ uniform Light light;
 void main()
 {
     //片元本身的颜色
-    vec4 objectColor = mix(texture(texture1, outTexCoord), texture(texture2, vec2(1-outTexCoord.x, outTexCoord.y)), mixValue);
+    // vec4 objectColor = mix(texture(texture1, outTexCoord), texture(texture2, vec2(1-outTexCoord.x, outTexCoord.y)), mixValue);
+    vec4 objectColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);
     //光照贴图
     vec3 diffuseTexture = vec3(texture(material.diffuse, outTexCoord));
     vec3 specularTexture = vec3(texture(material.specular, outTexCoord));
@@ -49,7 +50,7 @@ void main()
     //计算镜面反射光, 出射光线方向和视线方向的夹角作为镜面反射因子
     vec3 reflectDir = reflect(-lightDir, norm);//调用reflect函数求出射方向向量，参数1是入射方向，参数2是法向量，都要求是单位向量
     vec3 viewDir = normalize(viewPos-outFragPos);
-    float spec = pow(max(dot(reflectDir, viewDir), 0), material.shininess);//这个32是高光的反光度(Shininess)。
+    float spec = pow(max(dot(reflectDir, viewDir), 0.0), material.shininess);//这个32是高光的反光度(Shininess)。
     vec3 specular = light.specular * spec * specularTexture;
 
     vec3 result = (ambient + diffuse + specular) * objectColor.xyz;

@@ -140,7 +140,7 @@ int main()
 	while (!glfwWindowShouldClose(window))
 	{
 		//清屏
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);				//清空时的背景色
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);				//清空时的背景色
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //清除深度缓存位
 
 		//在调用glDrawElements之前为纹理单元绑定纹理

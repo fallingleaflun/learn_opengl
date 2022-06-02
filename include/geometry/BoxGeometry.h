@@ -2,6 +2,7 @@
 #define BOX_GROMETRY
 
 #include <geometry/BufferGeometry.h>
+#include <iostream>
 
 using namespace std;
 
@@ -42,6 +43,14 @@ public:
     this->buildPlane(0, 1, 2, 1, -1, width, height, depth, widthSegments, heightSegments, 4);   // pz
     this->buildPlane(0, 1, 2, -1, -1, width, height, -depth, widthSegments, heightSegments, 5); // nz
 
+    // cout<<"plane"<<endl;
+    // int ver_num = this->vertices.size();
+    // cout<<ver_num<<endl;
+    // for(int i=0; i<ver_num; i++){
+    //   printf("(%f,%f,%f,) (%f,%f,%f)\n",vertices[i].Position.x, vertices[i].Position.y, vertices[i].Position.z,
+    //                                     vertices[i].Normal.x, vertices[i].Normal.y, vertices[i].Normal.z);
+    // }
+    cout<<"plane end"<<endl;
     this->setupBuffers();
   }
 

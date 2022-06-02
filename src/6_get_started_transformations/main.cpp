@@ -72,7 +72,7 @@ int main()
 
 	//----------------------直接使用geometry来构造简单的基础几何体---------------
 	BoxGeometry box = BoxGeometry(2.0f, 2.0f, 2.0f);
-	glm::vec3 boxPosition = glm::vec3(0.0f, -2.0f, 1.0f);
+	glm::vec3 boxPosition = glm::vec3(0.0f, -2.0f, 0.0f);
 	SphereGeometry lightSphere=SphereGeometry(0.1, 10.0, 10.0);//光源显示为球形
 
 	//-----------------------创建封装好的着色器对象-------------------------
@@ -101,7 +101,7 @@ int main()
 	//---------------------------------------光源相关--------------------------------------
 	// 不需要动态改变的值直接在渲染循环外传给shader，否则设置一个变量，在渲染循环内改变
 	// 光源的位置和颜色
-	glm::vec3 lightPosition_ori = glm::vec3(0.5f, 0.5f, 0.5f);//光源一开始所在的位置
+	glm::vec3 lightPosition_ori = glm::vec3(-2.5f, 0.5f, -2.5f);//光源一开始所在的位置
 	glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f); //光源颜色
 	ourShader.setFloat("ambientStrength", 0.9);//环境光强因子
 	// 传递材质属性
@@ -146,12 +146,12 @@ int main()
 		ourShader.setFloat("mixValue", mixValue);
 
 		// 改一下光的颜色
-		// lightColor.x = sin(glfwGetTime() * 2.0f);
-		// lightColor.y = sin(glfwGetTime() * 0.7f);
-		// lightColor.z = sin(glfwGetTime() * 1.3f);
+		lightColor.x = sin(glfwGetTime() * 2.0f);
+		lightColor.y = sin(glfwGetTime() * 0.7f);
+		lightColor.z = sin(glfwGetTime() * 1.3f);
 		
 		// 在该帧，光的位置
-		glm::vec3 lightPosition = glm::vec3(lightPosition_ori.x + glm::sin(glfwGetTime()), lightPosition_ori.y, lightPosition_ori.z + glm::cos(glfwGetTime()));//改变一下光源位置
+		glm::vec3 lightPosition = glm::vec3(lightPosition_ori.x + glm::sin(glfwGetTime()), lightPosition_ori.y, lightPosition_ori.z + glm::sin(glfwGetTime()));//改变一下光源位置
 
 		// 在该帧，摄像机的旋转平移
 		glm::mat4 view = camera.GetViewMatrix();
@@ -170,6 +170,7 @@ int main()
 		ourShader.setMat4("model", model);
 		ourShader.setVec3("light.lightColor", lightColor);
 		ourShader.setVec3("light.lightPos", lightPosition);
+		ourShader.setVec3("viewPos", camera.Position);//原来是忘了传这个值
 		glBindVertexArray(box.VAO);
 		glDrawElements(GL_TRIANGLES, box.indices.size(), GL_UNSIGNED_INT, 0);
 		

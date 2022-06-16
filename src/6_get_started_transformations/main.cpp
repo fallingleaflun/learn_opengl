@@ -103,15 +103,20 @@ int main()
 	// 光源的位置和颜色
 	glm::vec3 lightPosition_ori = glm::vec3(-2.5f, 0.5f, -2.5f);//光源一开始所在的位置
 	glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f); //光源颜色
-	ourShader.setFloat("ambientStrength", 0.9);//环境光强因子
+	ourShader.setFloat("ambientStrength", 0.1);//环境光强因子
 	// 传递材质属性
 	ourShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
-	ourShader.setFloat("material.shininess", 2.0f);//为什么我这里反光度越低反而越反光
+	ourShader.setFloat("material.shininess", 0.1f);//为什么我这里反光度越低反而越反光
 	// 设置光照的三个属性
 	// ourShader.setVec3("light.ambient", 0.4f, 0.4f, 0.4f);
-	ourShader.setVec3("light.ambient", 0.1f, 0.1f, 0.1f);
+	ourShader.setVec3("light.ambient", 0.5f, 0.5f, 0.5f);
 	ourShader.setVec3("light.diffuse", 0.8f, 0.8f, 0.8f); // 将光照调暗了一些以搭配场景
 	ourShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+
+	// 设置光照衰减
+	ourShader.setFloat("light.constant", 1.0f);
+	ourShader.setFloat("light.linear", 0.09f);
+	ourShader.setFloat("light.quadratic", 0.032f);
 
 	//矩阵先这样初始化
 	glm::mat4 projection = glm::mat4(1.0f);																	//投影矩阵
@@ -144,11 +149,6 @@ int main()
 		glBindTexture(GL_TEXTURE_2D, specularMap);
 		//混合纹理
 		ourShader.setFloat("mixValue", mixValue);
-
-		// 改一下光的颜色
-		lightColor.x = sin(glfwGetTime() * 2.0f);
-		lightColor.y = sin(glfwGetTime() * 0.7f);
-		lightColor.z = sin(glfwGetTime() * 1.3f);
 		
 		// 在该帧，光的位置
 		glm::vec3 lightPosition = glm::vec3(lightPosition_ori.x + glm::sin(glfwGetTime()), lightPosition_ori.y, lightPosition_ori.z + glm::sin(glfwGetTime()));//改变一下光源位置
@@ -169,15 +169,20 @@ int main()
 		ourShader.use();
 		ourShader.setMat4("model", model);
 		ourShader.setVec3("light.lightColor", lightColor);
-		ourShader.setVec3("light.lightPos", lightPosition);
-		ourShader.setVec3("viewPos", camera.Position);//原来是忘了传这个值
+		// ourShader.setVec3("light.lightPos", lightPosition);
+		ourShader.setVec3("light.lightPos", camera.Position);//把光放在摄像头这里
+		ourShader.setVec3("light.direction", camera.Front);//聚光灯方向
+		ourShader.setFloat("light.cutOff", glm::cos(glm::radians(12.5f)));//聚光灯切光角
+		ourShader.setFloat("light.outerCutOff", glm::cos(glm::radians(17.5f)));//聚光灯外切光角
+		ourShader.setVec3("viewPos", camera.Position);
 		glBindVertexArray(box.VAO);
 		glDrawElements(GL_TRIANGLES, box.indices.size(), GL_UNSIGNED_INT, 0);
 		
 
 		// 绘制灯光物体
 		model = glm::mat4(1.0f);
-		lightPosition = glm::vec3(lightPosition.x * glm::sin(glfwGetTime()), lightPosition.y, lightPosition.z);//改变一下光源位置
+		// lightPosition = glm::vec3(lightPosition.x * glm::sin(glfwGetTime()), lightPosition.y, lightPosition.z);//改变一下光源位置
+		lightPosition = camera.Position;//改变一下光源位置
 		model = glm::translate(model, lightPosition);//灯光物体的模型平移至光源所在位置
 		lightObjectShader.use();
 		lightObjectShader.setMat4("model", model);

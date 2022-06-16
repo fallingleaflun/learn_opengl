@@ -22,11 +22,23 @@ uniform Material material;
 
 //光照属性结构体，不是很懂为什么会把三个系数放在这里，系数是和光源有关的吗?
 struct Light{
+    vec3 lightPos;//光源位置
+
     vec3 lightColor;//光照颜色
-    vec3 lightPos;//光源的位置
+
     vec3 ambient;//环境光系数
     vec3 diffuse;//漫反射系数
     vec3 specular;//镜面反射系数
+
+    //光照衰减相关参数
+    float constant;//常数项
+    float linear;//一次项
+    float quadratic;//二次项
+
+    //聚光灯相关参数
+    vec3 direction;//光源方向
+    float cutOff;//切光角
+    float outerCutOff;//外切光角
 };
 uniform Light light;
 
@@ -36,15 +48,15 @@ void main()
     // vec4 objectColor = mix(texture(texture1, outTexCoord), texture(texture2, vec2(1-outTexCoord.x, outTexCoord.y)), mixValue);
     vec4 objectColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);
     //光照贴图
-    vec3 diffuseTexture = vec3(texture(material.diffuse, outTexCoord));
-    vec3 specularTexture = vec3(texture(material.specular, outTexCoord));
-    
+    vec3 diffuseTexture = texture(material.diffuse, outTexCoord).rgb;
+    vec3 specularTexture = texture(material.specular, outTexCoord).rgb;
+
     //Phong光照计算
+    vec3 lightDir = normalize(light.lightPos - outFragPos);
     //计算环境光
     vec3 ambient = light.ambient * diffuseTexture;//这里仅使用光的环境光系数乘上光照贴图, 忽略了环境光颜色，因为认为环境光颜色在几乎所有情况下都等于漫反射颜色
     //计算漫反射光, 法向量和光照方向的夹角的cos作为漫反射因子, 注意需要单位化，否则算出来不是夹角的cos！
     vec3 norm = normalize(outNormal);
-    vec3 lightDir = normalize(light.lightPos - outFragPos);
     float diff = max(dot(norm, lightDir), 0.0);//max是因为夹角大于90度会变成负数，此时取0
     vec3 diffuse = light.diffuse * diff * diffuseTexture;
     //计算镜面反射光, 出射光线方向和视线方向的夹角作为镜面反射因子
@@ -52,6 +64,21 @@ void main()
     vec3 viewDir = normalize(viewPos-outFragPos);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
     vec3 specular = light.specular * spec * specularTexture;
+
+    //聚光灯边缘柔和相关参数
+    float theta=dot(lightDir, normalize(-light.direction));
+    float epsilon=light.cutOff - light.outerCutOff;
+    float intensity=clamp((theta-light.outerCutOff) / epsilon, 0.0, 1.0);
+    
+    //软化边缘
+    diffuse *= intensity;
+    specular *= intensity;
+
+    //计算光照衰减，将不对环境光做出影响，让它总是能有一点光
+    float distance = length(light.lightPos-outFragPos);
+    float attenuation = 1.0/(light.constant+light.linear * distance + light.quadratic*distance*distance);
+    diffuse *= attenuation;
+    specular *= attenuation;
 
     vec3 result = (ambient + diffuse + specular) * light.lightColor * objectColor.xyz;
     FragColor = vec4(result, 1.0);
